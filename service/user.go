@@ -14,13 +14,13 @@ func CreateUserService(client *ent.Client) *UserService {
 }
 
 func (s *UserService) Create(user *ent.User) *ent.UserCreate {
-	return s.client.User.Create().SetAge(user.Age).SetName(user.Name)
+	return s.client.User.Create().SetName(user.Name)
 }
 func (s *UserService) Get(user *ent.User) *ent.UserQuery {
-	return s.client.User.Query().Where(userQuery.ID(user.ID))
+	return s.client.User.Query().Where(userQuery.ID(user.ID)).WithProfile()
 }
 func (s *UserService) Update(user *ent.User) *ent.UserUpdateOne {
-	return s.client.User.UpdateOneID(user.ID).SetAge(user.Age).SetName(user.Name)
+	return s.client.User.UpdateOneID(user.ID).SetName(user.Name)
 }
 func (s *UserService) Delete(user *ent.User) *ent.UserDeleteOne {
 	return s.client.User.DeleteOneID(user.ID)

@@ -1,7 +1,11 @@
 package schema
 
 import (
+	"time"
+
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
@@ -13,12 +17,18 @@ type User struct {
 // Fields of the User.
 func (User) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("age").Positive(),
-		field.String("name").Default("unknown"),
+		field.String("name").NotEmpty().Default("unknown"),
+		field.Time("created_at").Default(time.Now),
+		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
 	}
 }
 
 // Edges of the User.
 func (User) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("profile", Profile.Type).
+			StorageKey(edge.Column("user_id")).Unique().Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}),
+	}
 }

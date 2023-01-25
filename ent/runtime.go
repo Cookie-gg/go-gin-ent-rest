@@ -3,22 +3,42 @@
 package ent
 
 import (
+	"go-gin-ent-rest/ent/profile"
 	"go-gin-ent-rest/ent/schema"
 	"go-gin-ent-rest/ent/user"
+	"time"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	profileFields := schema.Profile{}.Fields()
+	_ = profileFields
+	// profileDescGender is the schema descriptor for gender field.
+	profileDescGender := profileFields[0].Descriptor()
+	// profile.DefaultGender holds the default value on creation for the gender field.
+	profile.DefaultGender = profileDescGender.Default.(string)
+	// profileDescAge is the schema descriptor for age field.
+	profileDescAge := profileFields[1].Descriptor()
+	// profile.AgeValidator is a validator for the "age" field. It is called by the builders before save.
+	profile.AgeValidator = profileDescAge.Validators[0].(func(int) error)
 	userFields := schema.User{}.Fields()
 	_ = userFields
-	// userDescAge is the schema descriptor for age field.
-	userDescAge := userFields[0].Descriptor()
-	// user.AgeValidator is a validator for the "age" field. It is called by the builders before save.
-	user.AgeValidator = userDescAge.Validators[0].(func(int) error)
 	// userDescName is the schema descriptor for name field.
-	userDescName := userFields[1].Descriptor()
+	userDescName := userFields[0].Descriptor()
 	// user.DefaultName holds the default value on creation for the name field.
 	user.DefaultName = userDescName.Default.(string)
+	// user.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	user.NameValidator = userDescName.Validators[0].(func(string) error)
+	// userDescCreatedAt is the schema descriptor for created_at field.
+	userDescCreatedAt := userFields[1].Descriptor()
+	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
+	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
+	// userDescUpdatedAt is the schema descriptor for updated_at field.
+	userDescUpdatedAt := userFields[2].Descriptor()
+	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
+	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
 }

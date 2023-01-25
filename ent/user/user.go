@@ -2,24 +2,40 @@
 
 package user
 
+import (
+	"time"
+)
+
 const (
 	// Label holds the string label denoting the user type in the database.
 	Label = "user"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldAge holds the string denoting the age field in the database.
-	FieldAge = "age"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
+	// EdgeProfile holds the string denoting the profile edge name in mutations.
+	EdgeProfile = "profile"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// ProfileTable is the table that holds the profile relation/edge.
+	ProfileTable = "profiles"
+	// ProfileInverseTable is the table name for the Profile entity.
+	// It exists in this package in order to avoid circular dependency with the "profile" package.
+	ProfileInverseTable = "profiles"
+	// ProfileColumn is the table column denoting the profile relation/edge.
+	ProfileColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
 var Columns = []string{
 	FieldID,
-	FieldAge,
 	FieldName,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -33,8 +49,14 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// AgeValidator is a validator for the "age" field. It is called by the builders before save.
-	AgeValidator func(int) error
 	// DefaultName holds the default value on creation for the "name" field.
 	DefaultName string
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
 )

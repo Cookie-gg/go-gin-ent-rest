@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"go-gin-ent-rest/ent/predicate"
+	"go-gin-ent-rest/ent/profile"
 	"go-gin-ent-rest/ent/user"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -27,19 +29,6 @@ func (uu *UserUpdate) Where(ps ...predicate.User) *UserUpdate {
 	return uu
 }
 
-// SetAge sets the "age" field.
-func (uu *UserUpdate) SetAge(i int) *UserUpdate {
-	uu.mutation.ResetAge()
-	uu.mutation.SetAge(i)
-	return uu
-}
-
-// AddAge adds i to the "age" field.
-func (uu *UserUpdate) AddAge(i int) *UserUpdate {
-	uu.mutation.AddAge(i)
-	return uu
-}
-
 // SetName sets the "name" field.
 func (uu *UserUpdate) SetName(s string) *UserUpdate {
 	uu.mutation.SetName(s)
@@ -54,13 +43,59 @@ func (uu *UserUpdate) SetNillableName(s *string) *UserUpdate {
 	return uu
 }
 
+// SetCreatedAt sets the "created_at" field.
+func (uu *UserUpdate) SetCreatedAt(t time.Time) *UserUpdate {
+	uu.mutation.SetCreatedAt(t)
+	return uu
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableCreatedAt(t *time.Time) *UserUpdate {
+	if t != nil {
+		uu.SetCreatedAt(*t)
+	}
+	return uu
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (uu *UserUpdate) SetUpdatedAt(t time.Time) *UserUpdate {
+	uu.mutation.SetUpdatedAt(t)
+	return uu
+}
+
+// SetProfileID sets the "profile" edge to the Profile entity by ID.
+func (uu *UserUpdate) SetProfileID(id int) *UserUpdate {
+	uu.mutation.SetProfileID(id)
+	return uu
+}
+
+// SetNillableProfileID sets the "profile" edge to the Profile entity by ID if the given value is not nil.
+func (uu *UserUpdate) SetNillableProfileID(id *int) *UserUpdate {
+	if id != nil {
+		uu = uu.SetProfileID(*id)
+	}
+	return uu
+}
+
+// SetProfile sets the "profile" edge to the Profile entity.
+func (uu *UserUpdate) SetProfile(p *Profile) *UserUpdate {
+	return uu.SetProfileID(p.ID)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
 }
 
+// ClearProfile clears the "profile" edge to the Profile entity.
+func (uu *UserUpdate) ClearProfile() *UserUpdate {
+	uu.mutation.ClearProfile()
+	return uu
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (uu *UserUpdate) Save(ctx context.Context) (int, error) {
+	uu.defaults()
 	return withHooks[int, UserMutation](ctx, uu.sqlSave, uu.mutation, uu.hooks)
 }
 
@@ -86,11 +121,19 @@ func (uu *UserUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (uu *UserUpdate) defaults() {
+	if _, ok := uu.mutation.UpdatedAt(); !ok {
+		v := user.UpdateDefaultUpdatedAt()
+		uu.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (uu *UserUpdate) check() error {
-	if v, ok := uu.mutation.Age(); ok {
-		if err := user.AgeValidator(v); err != nil {
-			return &ValidationError{Name: "age", err: fmt.Errorf(`ent: validator failed for field "User.age": %w`, err)}
+	if v, ok := uu.mutation.Name(); ok {
+		if err := user.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "User.name": %w`, err)}
 		}
 	}
 	return nil
@@ -117,14 +160,49 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if value, ok := uu.mutation.Age(); ok {
-		_spec.SetField(user.FieldAge, field.TypeInt, value)
-	}
-	if value, ok := uu.mutation.AddedAge(); ok {
-		_spec.AddField(user.FieldAge, field.TypeInt, value)
-	}
 	if value, ok := uu.mutation.Name(); ok {
 		_spec.SetField(user.FieldName, field.TypeString, value)
+	}
+	if value, ok := uu.mutation.CreatedAt(); ok {
+		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
+	}
+	if value, ok := uu.mutation.UpdatedAt(); ok {
+		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if uu.mutation.ProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ProfileTable,
+			Columns: []string{user.ProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: profile.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.ProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ProfileTable,
+			Columns: []string{user.ProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: profile.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -146,19 +224,6 @@ type UserUpdateOne struct {
 	mutation *UserMutation
 }
 
-// SetAge sets the "age" field.
-func (uuo *UserUpdateOne) SetAge(i int) *UserUpdateOne {
-	uuo.mutation.ResetAge()
-	uuo.mutation.SetAge(i)
-	return uuo
-}
-
-// AddAge adds i to the "age" field.
-func (uuo *UserUpdateOne) AddAge(i int) *UserUpdateOne {
-	uuo.mutation.AddAge(i)
-	return uuo
-}
-
 // SetName sets the "name" field.
 func (uuo *UserUpdateOne) SetName(s string) *UserUpdateOne {
 	uuo.mutation.SetName(s)
@@ -173,9 +238,54 @@ func (uuo *UserUpdateOne) SetNillableName(s *string) *UserUpdateOne {
 	return uuo
 }
 
+// SetCreatedAt sets the "created_at" field.
+func (uuo *UserUpdateOne) SetCreatedAt(t time.Time) *UserUpdateOne {
+	uuo.mutation.SetCreatedAt(t)
+	return uuo
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableCreatedAt(t *time.Time) *UserUpdateOne {
+	if t != nil {
+		uuo.SetCreatedAt(*t)
+	}
+	return uuo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (uuo *UserUpdateOne) SetUpdatedAt(t time.Time) *UserUpdateOne {
+	uuo.mutation.SetUpdatedAt(t)
+	return uuo
+}
+
+// SetProfileID sets the "profile" edge to the Profile entity by ID.
+func (uuo *UserUpdateOne) SetProfileID(id int) *UserUpdateOne {
+	uuo.mutation.SetProfileID(id)
+	return uuo
+}
+
+// SetNillableProfileID sets the "profile" edge to the Profile entity by ID if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableProfileID(id *int) *UserUpdateOne {
+	if id != nil {
+		uuo = uuo.SetProfileID(*id)
+	}
+	return uuo
+}
+
+// SetProfile sets the "profile" edge to the Profile entity.
+func (uuo *UserUpdateOne) SetProfile(p *Profile) *UserUpdateOne {
+	return uuo.SetProfileID(p.ID)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearProfile clears the "profile" edge to the Profile entity.
+func (uuo *UserUpdateOne) ClearProfile() *UserUpdateOne {
+	uuo.mutation.ClearProfile()
+	return uuo
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -187,6 +297,7 @@ func (uuo *UserUpdateOne) Select(field string, fields ...string) *UserUpdateOne 
 
 // Save executes the query and returns the updated User entity.
 func (uuo *UserUpdateOne) Save(ctx context.Context) (*User, error) {
+	uuo.defaults()
 	return withHooks[*User, UserMutation](ctx, uuo.sqlSave, uuo.mutation, uuo.hooks)
 }
 
@@ -212,11 +323,19 @@ func (uuo *UserUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (uuo *UserUpdateOne) defaults() {
+	if _, ok := uuo.mutation.UpdatedAt(); !ok {
+		v := user.UpdateDefaultUpdatedAt()
+		uuo.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (uuo *UserUpdateOne) check() error {
-	if v, ok := uuo.mutation.Age(); ok {
-		if err := user.AgeValidator(v); err != nil {
-			return &ValidationError{Name: "age", err: fmt.Errorf(`ent: validator failed for field "User.age": %w`, err)}
+	if v, ok := uuo.mutation.Name(); ok {
+		if err := user.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "User.name": %w`, err)}
 		}
 	}
 	return nil
@@ -260,14 +379,49 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			}
 		}
 	}
-	if value, ok := uuo.mutation.Age(); ok {
-		_spec.SetField(user.FieldAge, field.TypeInt, value)
-	}
-	if value, ok := uuo.mutation.AddedAge(); ok {
-		_spec.AddField(user.FieldAge, field.TypeInt, value)
-	}
 	if value, ok := uuo.mutation.Name(); ok {
 		_spec.SetField(user.FieldName, field.TypeString, value)
+	}
+	if value, ok := uuo.mutation.CreatedAt(); ok {
+		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
+	}
+	if value, ok := uuo.mutation.UpdatedAt(); ok {
+		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if uuo.mutation.ProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ProfileTable,
+			Columns: []string{user.ProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: profile.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.ProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ProfileTable,
+			Columns: []string{user.ProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: profile.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues
