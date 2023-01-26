@@ -3,6 +3,7 @@ package handler
 import (
 	"go-gin-ent-rest/ent"
 	"go-gin-ent-rest/service"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -22,7 +23,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	user := ent.User{}
 	if err := c.BindJSON(&user); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		log.Fatal(err)
 	}
 	profile := ent.Profile{
 		Age:    user.Edges.Profile.Age,
@@ -30,14 +31,14 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 	if res, err := h.userService.Create(&user).Save(c); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		log.Fatal(err)
 	} else {
 		user = *res
 	}
 
 	if res, err := h.profileService.Create(&profile).SetUser(&user).Save(c); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		log.Fatal(err)
 	} else {
 		user.Edges.Profile = res
 	}

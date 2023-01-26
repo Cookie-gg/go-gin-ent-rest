@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	entsql "entgo.io/ent/dialect/sql"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-sql-driver/mysql"
 )
 
@@ -38,4 +40,18 @@ func InitDB() *ent.Client {
 	}
 
 	return client
+}
+
+func InitDBMock() (*ent.Client, sqlmock.Sqlmock, error) {
+	MockDB, mock, err := sqlmock.New()
+
+	if err != nil {
+		return nil, mock, err
+	}
+
+	drv := entsql.OpenDB("mysql", MockDB)
+
+	client := ent.NewClient(ent.Driver(drv), ent.Debug())
+
+	return client, mock, err
 }
