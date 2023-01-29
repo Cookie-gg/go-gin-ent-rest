@@ -29,7 +29,7 @@ func InitDB() *ent.Client {
 	client, err := ent.Open("mysql", mc.FormatDSN(), entOptions...)
 
 	if err != nil {
-		log.Fatalf("failed opening connection to postgres: %v", err)
+		log.Fatalf("failed opening connection to mysql: %v", err)
 	}
 
 	log.Println("db connected!")
